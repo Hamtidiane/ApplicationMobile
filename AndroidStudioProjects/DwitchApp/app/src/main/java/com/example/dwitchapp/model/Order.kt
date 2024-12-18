@@ -2,9 +2,11 @@ package com.example.dwitchapp.model
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import com.squareup.moshi.JsonClass
 import java.time.LocalDateTime
 import java.util.Date
 
+@JsonClass(generateAdapter = true)
 data class Order (
     val id: Long? = null,
     val documentID: String? = null,

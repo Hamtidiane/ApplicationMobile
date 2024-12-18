@@ -3,6 +3,7 @@ package com.example.dwitchapp.model
 import androidx.compose.ui.graphics.Color
 import com.example.dwitchapp.model.Ingredientkind.*
 import com.example.ui.theme.OpenColors
+import com.squareup.moshi.JsonClass
 import java.time.LocalDateTime
 import java.util.Date
 
@@ -15,6 +16,7 @@ enum class Ingredientkind {
 
 
 }
+   @JsonClass(generateAdapter = true)
     data class Ingredient(
         val id: Long? = null,
         val documentID: String? = null,

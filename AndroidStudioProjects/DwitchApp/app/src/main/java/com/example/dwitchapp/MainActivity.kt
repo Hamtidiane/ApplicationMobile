@@ -109,7 +109,7 @@ fun OrderScreen(orders: List<Order>) {
 
 @Composable
 fun OrderList(orders: List<Order>, modifier: Modifier = Modifier) {
-    LazyColumn(modifier = modifier.padding(horizontal = 8.dp),
+    LazyColumn(modifier = modifier.padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)) {
         items(orders) { order ->
             OrderItem(order = order)
@@ -126,27 +126,27 @@ fun OrderItem(order: Order) {
         modifier = Modifier
             .fillMaxWidth()
 
-         ) {
-
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
     ) {
-        Text(text = "Commande ID: ${order.documentID}", style = MaterialTheme.typography.bodyLarge)
-        Text(text = "Prix: ${order.price} €", style = MaterialTheme.typography.bodyMedium)
-        Text(text = "Message: ${order.cookMessage ?: "Aucun message"}", style = MaterialTheme.typography.bodyMedium)
-        IngredientList(order.ingredients ?: emptyList())
-        ProgressBar(order)
-        Text(
-            text = "${order.store?.name} - ${order.store?.city}  ${order.store?.zipCode}",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(top = 8.dp)
-        )
 
 
-    }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Text(text = "Commande ID: ${order.documentID}", style = MaterialTheme.typography.bodyLarge)
+            Text(text = "Prix: ${order.price} €", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Message: ${order.cookMessage ?: "Aucun message"}", style = MaterialTheme.typography.bodyMedium)
+            IngredientList(order.ingredients ?: emptyList())
+            ProgressBar(order)
+            Text(
+                text = "${order.store?.name} - ${order.store?.city}  ${order.store?.zipCode}",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+
+        }
     }
 }
 
@@ -174,7 +174,7 @@ fun IngredientItem(ingredient : Ingredient) {
             text = ingredient.ingredientKind.emoji(),
 
 
-        )
+            )
     }
 }
 
@@ -206,16 +206,16 @@ fun ProgressBar(order: Order) {
     ) {
 
 
-            LinearProgressIndicator(
-                progress = {order.progress?.div(100f) ?: 0f},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
+        LinearProgressIndicator(
+            progress = {order.progress?.div(100f) ?: 0f},
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp),
+            color = MaterialTheme.colorScheme.primary
+        )
 
-        }
     }
+}
 
 
 

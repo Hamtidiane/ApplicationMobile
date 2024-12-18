@@ -10,7 +10,7 @@ object ApiClient {
     private val moshi = Moshi.Builder().build()
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl("https://dwitch.pickle-forge.app/api") // Remplacez par l'URL de votre API
+        .baseUrl("https://dwitch.pickle-forge.app/api/") // Remplacez par l'URL de votre API
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
 

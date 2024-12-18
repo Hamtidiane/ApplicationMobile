@@ -16,7 +16,8 @@ moshiKotlin = "1.15.0"  # Ajout de Moshi Kotlin
 codegen = "1.15.2"
 moshiConverter = "2.11.0"  # Ajout de Moshi Converter
 ksp = "2.1.0-1.0.29"
-appcompat = "1.7.0"  # Version compatible avec Kotlin et KSP
+appcompat = "1.7.0"
+recyclerview = "1.3.2"  # Version compatible avec Kotlin et KSP
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -43,6 +44,7 @@ moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.re
 converter-moshi = { group = "com.squareup.retrofit2", name = "converter-moshi", version.ref = "moshiConverter" }
 codegen = { group = "com.squareup.moshi",name = "moshi-kotlin-codegen", version.ref = "codegen"  }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

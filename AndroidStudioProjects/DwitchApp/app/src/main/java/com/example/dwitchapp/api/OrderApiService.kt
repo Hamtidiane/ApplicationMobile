@@ -9,11 +9,10 @@ import retrofit2.http.Path
 
 interface OrderApiService {
     @GET("orders")
-    suspend fun getOrders(): List<Order>
+    suspend fun getAllOrders(): Response<List<Order>>
 
     @GET("orders/{id}")
-    suspend fun getOrderById(@Path("id") id: Long): Order
+    suspend fun getOrderById(@Path("id") id: Long): Response<Order>
 
-    @POST("orders")
-    suspend fun createOrder(@Body order: Order): Response<Order>
+
 }

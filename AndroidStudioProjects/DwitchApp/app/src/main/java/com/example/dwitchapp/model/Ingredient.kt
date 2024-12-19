@@ -3,31 +3,30 @@ package com.example.dwitchapp.model
 import androidx.compose.ui.graphics.Color
 import com.example.dwitchapp.model.Ingredientkind.*
 import com.example.ui.theme.OpenColors
+import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import java.time.LocalDateTime
 import java.util.Date
 
 
 enum class Ingredientkind {
-    BREAD,
-    MAIN,
-    TOPPING,
-    SAUCE;
+    @Json(name = "bread") BREAD,
+    @Json(name = "main")MAIN,
+    @Json(name = "topping")TOPPING,
+    @Json(name = "sauce") SAUCE;
 
 
 }
    @JsonClass(generateAdapter = true)
     data class Ingredient(
         val id: Long? = null,
-        val documentID: String? = null,
+        val documentId: String? = null,
         val name: String? = null,
         val description: String? = null,
         val isVegan: Boolean? = false,
         val isSpicy: Boolean? = false,
-        val ingredientKind: Ingredientkind = TOPPING,
-        val createdAt: LocalDateTime? = null,
-        val updatedAt: LocalDateTime? = null,
-        val publishedAt: LocalDateTime? = null
+        val ingredientKind: Ingredientkind = TOPPING ,
+
     )
 
 

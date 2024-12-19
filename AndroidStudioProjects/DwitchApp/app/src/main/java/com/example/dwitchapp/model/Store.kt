@@ -8,12 +8,9 @@ import java.util.Date
 @JsonClass(generateAdapter = true)
 data class Store (
     val id: Long? = null,
-    val documentID: String? = null,
+    val documentId: String? = null,
     val name: String? = null,
     val isOpen: Boolean? = null,
     val city: String? = null,
     val zipCode: String? = null,
-    val createdAt: Date ?= null,
-    val updatedAt: Date? = null,
-    val publishedAt: Date? = null
 )

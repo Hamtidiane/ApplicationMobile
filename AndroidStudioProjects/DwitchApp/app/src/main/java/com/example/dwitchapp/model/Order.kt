@@ -9,22 +9,19 @@ import java.util.Date
 @JsonClass(generateAdapter = true)
 data class Order (
     val id: Long? = null,
-    val documentID: String? = null,
-    val placedAt: Date? = null,
-    val receivedAt: Date? = null,
+    val documentId: String? = null,
+    val placedAt: String? = null,
+    val receivedAt: String? = null,
     val cookMessage: String? = null,
     val price: Long? = null,
     val progress: Long? = null,
-    val createdAt: Date? = null,
-    val updatedAt: Date? = null,
-    val publishedAt: Date? = null,
     val ingredients: List<Ingredient>? = null,
     val usersPermissionsUser: UsersPermissionsUser? = null,
     val store: Store? = null
 )
 
 
-val orders = listOf(
+/*val orders = listOf(
     Order(
         id = 1,
         documentID = "DOC12345",
@@ -123,7 +120,7 @@ val orders = listOf(
             publishedAt = Date(2024, 11, 20, 11, 0)
         )
     )
-)
+)*/
 
 
 

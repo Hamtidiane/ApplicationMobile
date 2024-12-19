@@ -1,11 +1,15 @@
 package com.example.dwitchapp
 
+import OrderViewModel
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,21 +33,29 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dwitchapp.model.Ingredient
-import com.example.dwitchapp.model.Ingredientkind
 import com.example.dwitchapp.model.Order
-import com.example.dwitchapp.model.Store
 import com.example.dwitchapp.model.color
 import com.example.dwitchapp.model.emoji
-import com.example.dwitchapp.model.orders
 import com.example.dwitchapp.ui.theme.DwitchAppTheme
 import com.example.ui.theme.OpenColors
-import com.example.ui.theme.OpenColorsPalette
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.runtime.setValue
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,7 +67,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    OrderList(orders = orders) // Appelle l'écran principal
+                    OrderList() // Appelle l'écran principal
                 }
             }
         }
@@ -63,7 +76,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OrderScreen(orders: List<Order>) {
+fun OrderScreen() {
     // Utilise Scaffold pour structurer la page avec un TopAppBar et un FloatingActionButton
 
     Scaffold(
@@ -79,17 +92,7 @@ fun OrderScreen(orders: List<Order>) {
             )
         },
         bottomBar= {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.primary,
-            ) {
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "Bottom app bar",
-                )
-            }
+            BottomNavigationBar()
         },
         floatingActionButton = {
             FloatingActionButton(onClick = {  }) {
@@ -102,13 +105,13 @@ fun OrderScreen(orders: List<Order>) {
 
 
     ) { innerPadding ->
-        OrderList(orders = com.example.dwitchapp.model.orders, modifier = Modifier.padding(innerPadding))
+        OrderList( modifier = Modifier.padding(innerPadding))
 
     }
 }
-
 @Composable
-fun OrderList(orders: List<Order>, modifier: Modifier = Modifier) {
+fun OrderList(viewModel: OrderViewModel = viewModel(), modifier: Modifier = Modifier) {
+    val orders by viewModel.orders
     LazyColumn(modifier = modifier.padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)) {
         items(orders) { order ->
@@ -117,6 +120,10 @@ fun OrderList(orders: List<Order>, modifier: Modifier = Modifier) {
     }
 }
 
+
+
+
+@SuppressLint("NewApi")
 @Composable
 fun OrderItem(order: Order) {
     Surface(
@@ -125,17 +132,33 @@ fun OrderItem(order: Order) {
         color = OpenColors.orange0,
         modifier = Modifier
             .fillMaxWidth()
-
     ) {
-
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            Text(text = "Commande ID: ${order.documentID}", style = MaterialTheme.typography.bodyLarge)
-            Text(text = "Prix: ${order.price} €", style = MaterialTheme.typography.bodyMedium)
+            // Vérification et conversion de l'Instant depuis un String
+            val formattedDate = order.placedAt?.let {
+                // Convertir le String en Instant
+                val instant = Instant.parse(it) // Parse ISO 8601 format
+                // Convertir Instant en ZonedDateTime en utilisant le fuseau horaire local
+                val localDateTime = instant.atZone(ZoneId.systemDefault())
+                // Formater la date
+                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm")
+                "Le ${localDateTime.format(formatter)}"
+            } ?: "Date inconnue"
+
+            // Affichage de la date et du prix dans une ligne
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(formattedDate)
+                Text(text = "${order.price ?: "Prix inconnu"} €", style = MaterialTheme.typography.bodyMedium)
+            }
+
+            // Autres informations
             Text(text = "Message: ${order.cookMessage ?: "Aucun message"}", style = MaterialTheme.typography.bodyMedium)
             IngredientList(order.ingredients ?: emptyList())
             ProgressBar(order)
@@ -144,14 +167,13 @@ fun OrderItem(order: Order) {
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(top = 8.dp)
             )
-
-
         }
     }
 }
 
 @Composable
 fun IngredientItem(ingredient : Ingredient) {
+
 
     Surface(
         modifier = Modifier
@@ -204,22 +226,95 @@ fun ProgressBar(order: Order) {
             .fillMaxWidth(),
         color = MaterialTheme.colorScheme.primaryContainer
     ) {
-
-
-        LinearProgressIndicator(
-            progress = {order.progress?.div(100f) ?: 0f},
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp),
-            color = MaterialTheme.colorScheme.primary
-        )
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Texte "Progression" à gauche
+            Text(
+                text = "Progression",
+                style = MaterialTheme.typography.bodyMedium
+            )
 
+            // Barre de progression
+            LinearProgressIndicator(
+                progress = { (order.progress?.div(100f) ?: 0f) },
+                modifier = Modifier
+                    .weight(1f) // Prendre tout l'espace restant
+                    .height(6.dp),
+                color = MaterialTheme.colorScheme.primary,
+            )
+
+            // Texte "100%" à droite
+            Text(
+                text = "100%",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+@Composable
+fun BottomNavigationBar() {
+    var selectedItem by remember { mutableStateOf(0) }
+
+    BottomNavigation(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = MaterialTheme.colorScheme.primaryContainer
+    ) {
+        BottomNavigationItem(
+            icon = {
+                Icon(Icons.Filled.AccountCircle, contentDescription = "Compte")
+            },
+            label = {
+                Text(text = "Compte")
+            },
+            selected = selectedItem == 0,
+            onClick = { selectedItem = 0 }
+        )
+        BottomNavigationItem(
+            icon = {
+                Icon(Icons.Filled.Fastfood, contentDescription = "Commander")
+            },
+            label = {
+                Text(text = "Commander")
+            },
+            selected = selectedItem == 1,
+            onClick = { selectedItem = 1 }
+        )
+        BottomNavigationItem(
+            icon = {
+                Icon(Icons.Filled.NewReleases, contentDescription = "News")
+            },
+            label = {
+                Text(text = "News")
+            },
+            selected = selectedItem == 2,
+            onClick = { selectedItem = 2 }
+        )
     }
 }
 
+@Composable
+fun BottomNavigationItem(icon: @Composable () -> Unit, label: @Composable () -> Unit, selected: Boolean, onClick: () -> Unit) {
 
+}
 
-
+@Composable
+fun BottomNavigation(modifier: Modifier, backgroundColor: Color, content: @Composable () -> Unit) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(backgroundColor)
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        content()
+    }
+}
 
 
 @Preview(showBackground = true)
@@ -230,7 +325,7 @@ fun GreetingPreview() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            OrderScreen(orders = orders)
+            OrderScreen()
 
         }
     }

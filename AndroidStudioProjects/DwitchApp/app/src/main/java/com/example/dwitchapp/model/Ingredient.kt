@@ -25,7 +25,7 @@ enum class Ingredientkind {
         val description: String? = null,
         val isVegan: Boolean? = false,
         val isSpicy: Boolean? = false,
-        val ingredientKind: Ingredientkind = TOPPING ,
+        @Json(name = "kind")val ingredientKind: Ingredientkind = TOPPING ,
 
     )
 

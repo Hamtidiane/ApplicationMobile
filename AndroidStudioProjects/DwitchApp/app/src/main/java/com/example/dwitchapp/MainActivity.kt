@@ -1,12 +1,11 @@
 package com.example.dwitchapp
 
-import OrderViewModel
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -17,21 +16,28 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.dwitchapp.api.ApiClient
 import com.example.dwitchapp.model.Ingredient
 import com.example.dwitchapp.model.Order
 import com.example.dwitchapp.model.color
 import com.example.dwitchapp.model.emoji
 import com.example.dwitchapp.ui.theme.DwitchAppTheme
 import com.example.ui.theme.OpenColors
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -46,16 +52,46 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    OrderScreen() // Appelle l'écran principal
+                    MainScreen()
                 }
             }
         }
     }
 }
 
+suspend fun fetchOrders(): List<Order>? {
+    return try {
+        val token = BuildConfig.apiKey // Assurez-vous que `apiKey` est bien configuré
+        Log.d("API", "Envoi de la requête pour récupérer les commandes.")
+        val response = ApiClient.dwitchService.getAllOrders("Bearer $token")
+        response.data
+    } catch (e: Exception) {
+        Log.e("API", "Erreur lors de la requête: ${e.message}")
+        null
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderScreen() {
+    var shouldRefreshData by remember { mutableStateOf(false) }
+    var orderList by remember { mutableStateOf(emptyList<Order>()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var hasError by remember { mutableStateOf(false) }
+
+    LaunchedEffect(shouldRefreshData) {
+        isLoading = true
+        hasError = false
+        try {
+            orderList = fetchOrders() ?: emptyList()
+        } catch (e: Exception) {
+            hasError = true
+            Timber.e("Erreur de récupération des commandes : ${e.message}")
+        } finally {
+            isLoading = false
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -63,25 +99,57 @@ fun OrderScreen() {
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.primary,
                 ),
-                title = { Text("Liste des commandes") }
+                title = { Text("Mes commandes") },
+                navigationIcon = {
+                    IconButton(onClick = { shouldRefreshData = !shouldRefreshData }) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = "Refresh content")
+                    }
+                }
             )
         },
-        bottomBar = {
-            BottomNavigationBar()
-        },
         floatingActionButton = {
-            FloatingActionButton(onClick = { }) {
+            FloatingActionButton(onClick = { /* Ajouter une commande */ }) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
             }
         }
     ) { innerPadding ->
-        OrderList(modifier = Modifier.padding(innerPadding))
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (hasError) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "Une erreur est survenue lors du chargement des commandes.",
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            OrderList(orders = orderList, modifier = Modifier.padding(innerPadding))
+        }
     }
 }
 
 @Composable
-fun OrderList(viewModel: OrderViewModel = viewModel(), modifier: Modifier = Modifier) {
-    val orders by viewModel.orders
+fun MainScreen() {
+    val navController = rememberNavController()
+    Scaffold(
+        bottomBar = { BottomNavigationBar(navController) }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = "orders",
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable("orders") { OrderScreen() }
+            composable("compte") { CompteScreen() }
+            composable("news") { NewsScreen() }
+        }
+    }
+}
+
+@Composable
+fun OrderList(orders: List<Order>, modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier.padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -132,7 +200,6 @@ fun OrderItem(order: Order) {
         }
     }
 }
-
 @Composable
 fun IngredientList(
     ingredients: List<Ingredient>,
@@ -146,7 +213,6 @@ fun IngredientList(
         }
     }
 }
-
 @Composable
 fun IngredientItem(ingredient: Ingredient) {
     Surface(
@@ -200,28 +266,49 @@ fun ProgressBar(order: Order) {
     }
 }
 
+
 @Composable
-fun BottomNavigationBar() {
+fun BottomNavigationBar(navController: NavController) {
+    val items = listOf(
+        Triple("orders", "Commandes", Icons.Filled.Fastfood),
+        Triple("compte", "Compte", Icons.Filled.AccountCircle),
+        Triple("news", "News", Icons.Filled.NewReleases)
+    )
+
     var selectedItem by remember { mutableStateOf(0) }
+
     NavigationBar {
-        NavigationBarItem(
-            icon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Compte") },
-            label = { Text("Compte") },
-            selected = selectedItem == 0,
-            onClick = { selectedItem = 0 }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Filled.Fastfood, contentDescription = "Commander") },
-            label = { Text("Commander") },
-            selected = selectedItem == 1,
-            onClick = { selectedItem = 1 }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Filled.NewReleases, contentDescription = "News") },
-            label = { Text("News") },
-            selected = selectedItem == 2,
-            onClick = { selectedItem = 2 }
-        )
+        items.forEachIndexed { index, item ->
+            NavigationBarItem(
+                icon = { Icon(item.third, contentDescription = item.second) },
+                label = { Text(item.second) },
+                selected = selectedItem == index,
+                onClick = {
+                    selectedItem = index
+                    navController.navigate(item.first) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun CompteScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Écran Compte", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+fun NewsScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Écran News", style = MaterialTheme.typography.titleMedium)
     }
 }
 

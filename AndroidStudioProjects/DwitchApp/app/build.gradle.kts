@@ -3,11 +3,18 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.secrets.gradle)
 }
 
 android {
     namespace = "com.example.dwitchapp"
     compileSdk = 34
+
+
+    buildFeatures{
+        compose = true
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "com.example.dwitchapp"
@@ -17,6 +24,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+    secrets{
+        propertiesFileName = "secrets.properties"
     }
 
     buildTypes {
@@ -35,9 +45,7 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    buildFeatures {
-        compose = true
-    }
+
 }
 
 dependencies {
@@ -68,5 +76,6 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.moshi.adapter)
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
 
 }

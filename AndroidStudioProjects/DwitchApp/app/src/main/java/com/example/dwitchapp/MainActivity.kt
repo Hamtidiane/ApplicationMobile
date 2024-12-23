@@ -6,7 +6,19 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.*
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -17,11 +29,34 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -29,20 +64,25 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.dwitchapp.api.ApiClient
 import com.example.dwitchapp.model.Ingredient
+import com.example.dwitchapp.model.news.News
 import com.example.dwitchapp.model.Order
 import com.example.dwitchapp.model.color
 import com.example.dwitchapp.model.emoji
 import com.example.dwitchapp.ui.theme.DwitchAppTheme
+import com.example.dwitchapp.viewModel.NewsScreen
+import com.example.dwitchapp.viewModel.NewsViewModel
 import com.example.ui.theme.OpenColors
-import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+
 class MainActivity : ComponentActivity() {
+    private val newsViewModel: NewsViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -52,7 +92,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen()
+                    MainScreen(newsViewModel)
                 }
             }
         }
@@ -70,6 +110,21 @@ suspend fun fetchOrders(): List<Order>? {
         null
     }
 }
+suspend fun fetchNews(): List<News>?{
+    return try {
+        val token = BuildConfig.apiKey // Assurez-vous que `apiKey` est bien configuré
+    Log.d("API", "Envoi de la requête pour récupérer les news.")
+    val response = ApiClient.dwitchService.getNews("Bearer $token")
+    response.data
+    } catch (e: Exception) {
+        Log.e("API", "Erreur lors de la requête: ${e.message}")
+        null
+    }
+
+}
+
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,7 +186,7 @@ fun OrderScreen() {
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(newsViewModel: NewsViewModel) {
     val navController = rememberNavController()
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) }
@@ -143,7 +198,7 @@ fun MainScreen() {
         ) {
             composable("orders") { OrderScreen() }
             composable("compte") { CompteScreen() }
-            composable("news") { NewsScreen() }
+            composable("news") { NewsScreen(newsViewModel) }
         }
     }
 }
@@ -270,8 +325,8 @@ fun ProgressBar(order: Order) {
 @Composable
 fun BottomNavigationBar(navController: NavController) {
     val items = listOf(
-        Triple("orders", "Commandes", Icons.Filled.Fastfood),
         Triple("compte", "Compte", Icons.Filled.AccountCircle),
+        Triple("orders", "Commander", Icons.Filled.Fastfood),
         Triple("news", "News", Icons.Filled.NewReleases)
     )
 
@@ -305,12 +360,7 @@ fun CompteScreen() {
     }
 }
 
-@Composable
-fun NewsScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Écran News", style = MaterialTheme.typography.titleMedium)
-    }
-}
+
 
 @Preview(showBackground = true)
 @Composable

@@ -35,13 +35,27 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
-import com.example.dwitchapp.fetchNews
+import com.example.dwitchapp.BuildConfig
+import com.example.dwitchapp.api.ApiClient
 import com.example.dwitchapp.model.news.News
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class NewsViewModel : ViewModel() {
+    suspend fun fetchNews(): List<News>?{
+        return try {
+            val token = BuildConfig.apiKey // Assurez-vous que `apiKey` est bien configuré
+            Log.d("API", "Envoi de la requête pour récupérer les news.")
+            val response = ApiClient.dwitchService.getNews("Bearer $token")
+            response.data
+        } catch (e: Exception) {
+            Log.e("API", "Erreur lors de la requête: ${e.message}")
+            null
+        }
+
+    }
+
 
     private val _newsState = MutableStateFlow<List<News>>(emptyList())
     val news: StateFlow<List<News>> get() = _newsState
@@ -66,47 +80,7 @@ class NewsViewModel : ViewModel() {
         }
     }
 }
-@Composable
-fun NewsScreen(newsViewModel: NewsViewModel) {
-    val news by newsViewModel.news.collectAsState()
-    val isLoading by newsViewModel.isLoading.collectAsState()
-    val hasError by newsViewModel.hasError.collectAsState()
 
-    LaunchedEffect(Unit) {
-        newsViewModel.loadNews()  // Chargez les nouvelles au démarrage
-    }
-
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        when {
-            isLoading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
-            hasError -> {
-                Text(
-                    text = "Une erreur est survenue lors du chargement des actualités.",
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-            news.isEmpty() -> { // Vérifiez si la liste des news est vide
-                Text(
-                    text = "Aucune actualité disponible.",
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-
-            else -> {
-                NewsList(news = news)  // Affichage de la liste des nouvelles
-            }
-        }
-    }
-}
 @Composable
 fun NewsList(news: List<News>) {
     LazyColumn(
@@ -169,7 +143,7 @@ fun NewsCard(
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodyMedium, // Style pour le corps du texte
-                        maxLines = Int.MAX_VALUE, // git add tout le texte
+                        maxLines = Int.MAX_VALUE, // affiche tout le texte
                         overflow = TextOverflow.Visible
                     )
                 }

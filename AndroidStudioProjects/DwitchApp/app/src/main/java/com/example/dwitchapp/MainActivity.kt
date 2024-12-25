@@ -1,8 +1,6 @@
 package com.example.dwitchapp
 
-import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,19 +8,10 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
@@ -36,7 +25,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -54,9 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -64,25 +50,20 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import coil.compose.AsyncImage
-import com.example.dwitchapp.api.ApiClient
-import com.example.dwitchapp.model.Ingredient
-import com.example.dwitchapp.model.news.News
-import com.example.dwitchapp.model.Order
-import com.example.dwitchapp.model.color
-import com.example.dwitchapp.model.emoji
+import com.example.dwitchapp.model.Account
 import com.example.dwitchapp.ui.theme.DwitchAppTheme
-import com.example.dwitchapp.viewModel.NewsScreen
+import com.example.dwitchapp.viewModel.AccountViewModel
+import com.example.dwitchapp.viewModel.NewsList
 import com.example.dwitchapp.viewModel.NewsViewModel
-import com.example.ui.theme.OpenColors
-import timber.log.Timber
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import com.example.dwitchapp.viewModel.OrdersViewModel
+
+
 
 
 class MainActivity : ComponentActivity() {
     private val newsViewModel: NewsViewModel by viewModels()
+    private val ordersViewModel: OrdersViewModel by viewModels()
+    private val accountViewModel: AccountViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -92,61 +73,30 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(newsViewModel)
+                    MainScreen(newsViewModel, ordersViewModel, accountViewModel)
                 }
             }
         }
     }
 }
 
-suspend fun fetchOrders(): List<Order>? {
-    return try {
-        val token = BuildConfig.apiKey // Assurez-vous que `apiKey` est bien configuré
-        Log.d("API", "Envoi de la requête pour récupérer les commandes.")
-        val response = ApiClient.dwitchService.getAllOrders("Bearer $token")
-        response.data
-    } catch (e: Exception) {
-        Log.e("API", "Erreur lors de la requête: ${e.message}")
-        null
-    }
-}
-suspend fun fetchNews(): List<News>?{
-    return try {
-        val token = BuildConfig.apiKey // Assurez-vous que `apiKey` est bien configuré
-    Log.d("API", "Envoi de la requête pour récupérer les news.")
-    val response = ApiClient.dwitchService.getNews("Bearer $token")
-    response.data
-    } catch (e: Exception) {
-        Log.e("API", "Erreur lors de la requête: ${e.message}")
-        null
-    }
 
-}
 
 
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OrderScreen() {
-    var shouldRefreshData by remember { mutableStateOf(false) }
-    var orderList by remember { mutableStateOf(emptyList<Order>()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var hasError by remember { mutableStateOf(false) }
+fun OrderScreen(orderViewModel: OrdersViewModel) {
+    val orders by orderViewModel.orders.collectAsState()
+    val isLoading by orderViewModel.isLoading.collectAsState()
+    val hasError by orderViewModel.hasError.collectAsState()
 
-    LaunchedEffect(shouldRefreshData) {
-        isLoading = true
-        hasError = false
-        try {
-            orderList = fetchOrders() ?: emptyList()
-        } catch (e: Exception) {
-            hasError = true
-            Timber.e("Erreur de récupération des commandes : ${e.message}")
-        } finally {
-            isLoading = false
+    LaunchedEffect(Unit) {
+
+
+            orderViewModel.fetchOrders() // Charger les commandes au démarrage        } catch (e: Exception) {
         }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -156,7 +106,7 @@ fun OrderScreen() {
                 ),
                 title = { Text("Mes commandes") },
                 navigationIcon = {
-                    IconButton(onClick = { shouldRefreshData = !shouldRefreshData }) {
+                    IconButton(onClick = { orderViewModel.fetchOrders()  }) {
                         Icon(Icons.Rounded.Refresh, contentDescription = "Refresh content")
                     }
                 }
@@ -180,13 +130,106 @@ fun OrderScreen() {
                 )
             }
         } else {
-            OrderList(orders = orderList, modifier = Modifier.padding(innerPadding))
+            orderViewModel.OrderList(orders = orders, modifier = Modifier.padding(innerPadding))
+        }
+    }
+}
+@Composable
+fun NewsScreen(newsViewModel: NewsViewModel) {
+    val news by newsViewModel.news.collectAsState()
+    val isLoading by newsViewModel.isLoading.collectAsState()
+    val hasError by newsViewModel.hasError.collectAsState()
+
+    LaunchedEffect(Unit) {
+        newsViewModel.loadNews()  // Chargez les nouvelles au démarrage
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        when {
+            isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            hasError -> {
+                Text(
+                    text = "Une erreur est survenue lors du chargement des actualités.",
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            news.isEmpty() -> { // Vérifiez si la liste des news est vide
+                Text(
+                    text = "Aucune actualité disponible.",
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+
+            else -> {
+                NewsList(news = news)  // Affichage de la liste des nouvelles
+            }
+        }
+    }
+}
+@Composable
+fun AccountScreen(accountViewModel: AccountViewModel) {
+    val accounts by accountViewModel.accounts.collectAsState()
+    val isLoading by accountViewModel.isLoading.collectAsState()
+    val hasError by accountViewModel.hasError.collectAsState()
+
+    // Charger les données une seule fois
+    LaunchedEffect(Unit) {
+        accountViewModel.fetchAccounts()
+    }
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        when {
+            isLoading -> CircularProgressIndicator()
+            hasError -> Text("Erreur lors du chargement des comptes")
+            accounts.isEmpty() ->{
+                Text("Aucun compte trouvé")
+            }
+            else -> {
+                AccountList(accounts)
+            }
         }
     }
 }
 
 @Composable
-fun MainScreen(newsViewModel: NewsViewModel) {
+fun AccountList(accounts: List<Account>) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(accounts.size) { index ->
+            val account = accounts[index]
+            AccountCard(account)
+        }
+    }
+}
+
+@Composable
+fun AccountCard(account: Account) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.elevatedCardElevation(4.dp)    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Nom : ${account.name}")
+            Text("Email : ${account.email}")
+        }
+    }
+}
+
+
+@Composable
+fun MainScreen(newsViewModel: NewsViewModel, ordersViewModel: OrdersViewModel, accountViewModel: AccountViewModel) {
     val navController = rememberNavController()
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) }
@@ -196,130 +239,13 @@ fun MainScreen(newsViewModel: NewsViewModel) {
             startDestination = "orders",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("orders") { OrderScreen() }
-            composable("compte") { CompteScreen() }
+            composable("orders") { OrderScreen(ordersViewModel) }
+            composable("compte") { AccountScreen(accountViewModel) }
             composable("news") { NewsScreen(newsViewModel) }
         }
     }
 }
 
-@Composable
-fun OrderList(orders: List<Order>, modifier: Modifier = Modifier) {
-    LazyColumn(
-        modifier = modifier.padding(horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        items(orders) { order ->
-            OrderItem(order = order)
-        }
-    }
-}
-
-@SuppressLint("NewApi")
-@Composable
-fun OrderItem(order: Order) {
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        shadowElevation = 4.dp,
-        color = OpenColors.orange0,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        ) {
-            val formattedDate = order.placedAt?.let {
-                val instant = Instant.parse(it)
-                val localDateTime = instant.atZone(ZoneId.systemDefault())
-                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm")
-                "Le ${localDateTime.format(formatter)}"
-            } ?: "Date inconnue"
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(formattedDate)
-                Text(text = "${order.price ?: "Prix inconnu"} €", style = MaterialTheme.typography.bodyMedium)
-            }
-
-            Text(text = "Message: ${order.cookMessage ?: "Aucun message"}", style = MaterialTheme.typography.bodyMedium)
-            IngredientList(order.ingredients ?: emptyList())
-            ProgressBar(order)
-            Text(
-                text = "${order.store?.name} - ${order.store?.city} ${order.store?.zipCode}",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-    }
-}
-@Composable
-fun IngredientList(
-    ingredients: List<Ingredient>,
-    modifier: Modifier = Modifier
-) {
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        items(ingredients) { ingredient ->
-            IngredientItem(ingredient = ingredient)
-        }
-    }
-}
-@Composable
-fun IngredientItem(ingredient: Ingredient) {
-    Surface(
-        modifier = Modifier
-            .padding(8.dp)
-            .fillMaxWidth(),
-        color = ingredient.ingredientKind.color(),
-    ) {
-        Row(
-            modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = ingredient.ingredientKind.emoji(),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = ingredient.name ?: "",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
-}
-
-@Composable
-fun ProgressBar(order: Order) {
-    Surface(
-        modifier = Modifier
-            .padding(8.dp)
-            .fillMaxWidth(),
-        color = MaterialTheme.colorScheme.primaryContainer
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = "Progression", style = MaterialTheme.typography.bodyMedium)
-            LinearProgressIndicator(
-                progress = (order.progress?.div(100f) ?: 0f),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(6.dp),
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(text = "100%", style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
 
 
 @Composable
@@ -366,6 +292,8 @@ fun CompteScreen() {
 @Composable
 fun PreviewOrderScreen() {
     DwitchAppTheme {
-        OrderScreen()
+        OrderScreen(
+            orderViewModel = OrdersViewModel()
+        )
     }
 }
